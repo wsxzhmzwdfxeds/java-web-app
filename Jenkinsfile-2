@@ -22,7 +22,7 @@ pipeline {
       steps {
         withCredentials([string(credentialsId: 'jenkins-sonar', variable: 'SONAR_TOKEN')]) {
           script {
-            def projectKey = env.GIT_URL?.split('/')?.last()?.replace('.git', '')
+                        def projectKey = env.GIT_URL?.split('/')?.last()?.replace('.git', '')
 
             // 1. 获取 SonarQube 扫描结果 (JSON)
             echo "Fetching SonarQube results..."
@@ -77,8 +77,10 @@ pipeline {
           // 打印 Claude 分析结果到 Console
           echo "=== Claude Analysis ==="
           echo claudeAnalysis
+          }
         }
       }
     }
  }
 }
+
