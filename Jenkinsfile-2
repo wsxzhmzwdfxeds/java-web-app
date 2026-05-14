@@ -67,9 +67,9 @@ ${claudeAnalysis}
 
 ## 原始数据
 
-\`\`\`json
+```json
 ${sonarApiResponse}
-\`\`\`
+```
 """
           writeFile file: "sonar-analysis-report.md", text: reportContent
           echo "Report generated: sonar-analysis-report.md"
