@@ -49,7 +49,7 @@ pipeline {
 
           def claudeAnalysis = sh(
             script: """
-              claude -p --no-input < ${promptFile}
+              claude -p < ${promptFile}
             """,
             returnStdout: true
           ).trim()
