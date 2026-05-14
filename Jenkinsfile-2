@@ -37,14 +37,14 @@ pipeline {
           echo "Calling Claude CLI for analysis..."
           def promptFile = "sonar-prompt.txt"
           def prompt = """你是一位代码质量专家。请分析以下 SonarQube 扫描结果，并用中文给出：
-1. 整体评价
-2. 主要问题及优先级（按 Critical > High > Medium > Low 排序）
-3. 改进建议（最多5条，每条简洁明了）
+            1. 整体评价
+            2. 主要问题及优先级（按 Critical > High > Medium > Low 排序）
+            3. 改进建议（最多5条，每条简洁明了）
 
-扫描结果 JSON:
-${sonarApiResponse}
+            扫描结果 JSON:
+            ${sonarApiResponse}
 
-请直接输出分析结果，不需要开场白。"""
+            请直接输出分析结果，不需要开场白。"""
           writeFile file: promptFile, text: prompt
 
           def claudeAnalysis = sh(
@@ -56,21 +56,21 @@ ${sonarApiResponse}
 
           // 3. 生成报告文件
           def reportContent = """
-# SonarQube 扫描分析报告
+            # SonarQube 扫描分析报告
 
-**项目**: ${projectKey}
-**扫描时间**: ${new Date().format('yyyy-MM-dd HH:mm:ss')}
+            **项目**: ${projectKey}
+            **扫描时间**: ${new Date().format('yyyy-MM-dd HH:mm:ss')}
 
-## Claude AI 解读
+            ## Claude AI 解读
 
-${claudeAnalysis}
+            ${claudeAnalysis}
 
-## 原始数据
+            ## 原始数据
 
-```json
-${sonarApiResponse}
-```
-"""
+            ```json
+            ${sonarApiResponse}
+            ```
+            """
           writeFile file: "sonar-analysis-report.md", text: reportContent
           echo "Report generated: sonar-analysis-report.md"
 
@@ -80,5 +80,5 @@ ${sonarApiResponse}
         }
       }
     }
-  }
-}
+ }
+} 
