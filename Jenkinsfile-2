@@ -6,7 +6,7 @@ pipeline {
   stages {
     stage('Scan') {
       steps {
-        withSonarQubeEnv(installationName: 'sq1') { 
+        withSonarQubeEnv(installationName: 'sq1') {
           sh "./mvnw clean org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.0.2155:sonar -Dsonar.projectKey=${env.GIT_URL?.split('/')?.last()?.replace('.git', '')} -Dsonar.projectName=${env.GIT_URL?.split('/')?.last()?.replace('.git', '')}"
         }
       }
@@ -15,6 +15,68 @@ pipeline {
       steps {
         timeout(time: 2, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+    stage('Get Results & Claude Analysis') {
+      steps {
+        withCredentials([string(credentialsId: 'jenkins-sonar', variable: 'SONAR_TOKEN')]) {
+          script {
+            def projectKey = env.GIT_URL?.split('/')?.last()?.replace('.git', '')
+
+            // 1. 获取 SonarQube 扫描结果 (JSON)
+            echo "Fetching SonarQube results..."
+            def sonarApiResponse = sh(
+              script: """
+                curl -s -u ${SONAR_TOKEN}: '${SONAR_URL}/api/measures/component?component=${projectKey}&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,sqale_rating,alert_status,quality_gate_details'
+              """,
+              returnStdout: true
+            ).trim()
+
+          // 2. 生成 Prompt 文件并调用 Claude CLI
+          echo "Calling Claude CLI for analysis..."
+          def promptFile = "sonar-prompt.txt"
+          def prompt = """你是一位代码质量专家。请分析以下 SonarQube 扫描结果，并用中文给出：
+1. 整体评价
+2. 主要问题及优先级（按 Critical > High > Medium > Low 排序）
+3. 改进建议（最多5条，每条简洁明了）
+
+扫描结果 JSON:
+${sonarApiResponse}
+
+请直接输出分析结果，不需要开场白。"""
+          writeFile file: promptFile, text: prompt
+
+          def claudeAnalysis = sh(
+            script: """
+              claude -p --no-input < ${promptFile}
+            """,
+            returnStdout: true
+          ).trim()
+
+          // 3. 生成报告文件
+          def reportContent = """
+# SonarQube 扫描分析报告
+
+**项目**: ${projectKey}
+**扫描时间**: ${new Date().format('yyyy-MM-dd HH:mm:ss')}
+
+## Claude AI 解读
+
+${claudeAnalysis}
+
+## 原始数据
+
+\`\`\`json
+${sonarApiResponse}
+\`\`\`
+"""
+          writeFile file: "sonar-analysis-report.md", text: reportContent
+          echo "Report generated: sonar-analysis-report.md"
+
+          // 打印 Claude 分析结果到 Console
+          echo "=== Claude Analysis ==="
+          echo claudeAnalysis
         }
       }
     }
